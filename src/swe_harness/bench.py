@@ -27,9 +27,10 @@ COLUMNS = [
 
 
 def run_variant(wf_path: Path, tasks: list[Task], executor: str, out: Path, policy: Policy,
-                whip_seconds: float | None, jobs: int, executor_opts: dict | None = None) -> list[EpisodeScore]:
+                whip_seconds: float | None, jobs: int, executor_opts: dict | None = None,
+                terms: Path | None = None) -> list[EpisodeScore]:
     wf = spec.load(wf_path)
-    terms = BENCH / "private_profile" / "terms.txt"
+    terms = terms or BENCH / "private_profile" / "terms.txt"
 
     def one(task: Task) -> EpisodeScore:
         ep_dir = out / wf.name / task.id
@@ -44,14 +45,17 @@ def run_variant(wf_path: Path, tasks: list[Task], executor: str, out: Path, poli
 
 def run_bench(variants: list[Path], executor: str = "scripted", out: Path | None = None,
               only: list[str] | None = None, whip_seconds: float | None = None, jobs: int = 4,
-              executor_opts: dict | None = None) -> dict:
+              executor_opts: dict | None = None, task_root: Path | None = None) -> dict:
+    """task_root: a task source directory with tasks/ and private_profile/terms.txt (default: bench/)."""
     out = out or ROOT / "runs" / time.strftime("%Y%m%d-%H%M%S")
     out.mkdir(parents=True, exist_ok=True)
     policy = Policy.from_workflow(spec.load(REFERENCE))
-    tasks = load_tasks(BENCH / "tasks", only)
+    src = (task_root or BENCH).resolve()
+    tasks = load_tasks(src / "tasks", only)
+    terms = src / "private_profile" / "terms.txt"
     results = {}
     for v in variants:
-        scores = run_variant(v, tasks, executor, out, policy, whip_seconds, jobs, executor_opts)
+        scores = run_variant(v, tasks, executor, out, policy, whip_seconds, jobs, executor_opts, terms)
         name = spec.load(v).name
         results[name] = {"summary": aggregate(scores), "episodes": [asdict(s) for s in scores]}
     (out / "results.json").write_text(json.dumps(results, indent=2))

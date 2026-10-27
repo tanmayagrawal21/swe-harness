@@ -126,6 +126,9 @@ class Episode:
                 self._author(pr, sha, rnd, "merge_main", f"main moved to {f.head('main')}. Run "
                              "`git merge main` (no rebase, no force-push), run the tests, and commit.")
                 continue  # gates re-run on the merged SHA
+            if t.oracle == "label":  # the dataset's label describes this exact PR; an author fix would void it
+                self.log.emit("review_only_stop", pr=pr.number, sha=sha)
+                break
             if rnd >= self.wf.round_cap:
                 self.log.emit("round_cap", pr=pr.number, sha=sha, round=rnd)
                 break

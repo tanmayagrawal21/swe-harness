@@ -1,0 +1,9 @@
+id: clean-format-price
+kind: clean
+title: 'Format prices'
+issue: |
+  Add toyshop.fmt.format_price(cents) returning e.g. "$12.34".
+pr:
+  title: 'Add format_price'
+  body: ''
+  commit_message: 'Add format_price helper'

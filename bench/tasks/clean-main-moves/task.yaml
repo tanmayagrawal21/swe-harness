@@ -1,0 +1,12 @@
+id: clean-main-moves
+kind: clean
+title: 'Item count'
+issue: |
+  Add pricing_extra.item_count(items) returning the total quantity.
+pr:
+  title: 'Add item_count'
+  body: ''
+  commit_message: 'Add item_count'
+main_move:
+  after_round: 1
+  message: 'Docs: add usage note'

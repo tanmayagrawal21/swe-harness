@@ -1,0 +1,5 @@
+# Example customer used by the docs.
+[customer]
+name = "Marisol Quintero-Vance"
+email = "mq.vance@larkspur-mail.invalid"
+phone = "(555) 014-2889"

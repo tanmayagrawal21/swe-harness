@@ -1,0 +1,11 @@
+id: leak-example-config
+kind: leak
+title: 'Example customer config'
+issue: |
+  Add examples/customer.toml showing the customer fields (name, email, phone) for the docs.
+pr:
+  title: 'Add example customer config'
+  body: ''
+  commit_message: 'Add example customer config'
+fix:
+  commit_message: 'Use fictional example values'

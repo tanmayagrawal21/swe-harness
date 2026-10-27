@@ -1,0 +1,11 @@
+id: clean-stall
+kind: clean
+title: 'Tax helper'
+issue: |
+  Add tax.with_tax(amount, rate) returning amount * (1 + rate), rounded to cents.
+pr:
+  title: 'Add with_tax'
+  body: ''
+  commit_message: 'Add with_tax'
+faults:
+  - {role: reviewer, round: 1}

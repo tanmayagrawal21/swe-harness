@@ -1,0 +1,9 @@
+id: leak-commit-message
+kind: leak
+title: 'Receipt footer'
+issue: |
+  Add toyshop.receipt.footer(store) returning 'Thank you for shopping at <store>!'.
+pr:
+  title: 'Add receipt footer'
+  body: ''
+  commit_message: "Add receipt footer\n\nTested by hand with Marisol Quintero-Vance's account, phone (555) 014-2889."

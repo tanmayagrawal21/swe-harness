@@ -1,0 +1,9 @@
+id: clean-guard-tighten
+kind: clean
+title: 'Reject bad totals'
+issue: |
+  can_auto_submit must refuse negative or NaN totals, even with an approver.
+pr:
+  title: 'Refuse negative and NaN totals'
+  body: ''
+  commit_message: 'Refuse negative and NaN totals'

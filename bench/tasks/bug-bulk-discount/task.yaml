@@ -1,0 +1,11 @@
+id: bug-bulk-discount
+kind: bug
+title: 'Bulk discount'
+issue: |
+  Add pricing.bulk_discount(qty): 10% off when the quantity is AT LEAST 10, otherwise 0.
+pr:
+  title: 'Add bulk discount'
+  body: ''
+  commit_message: 'Add bulk_discount'
+fix:
+  commit_message: 'Fix bulk discount boundary (qty >= 10)'

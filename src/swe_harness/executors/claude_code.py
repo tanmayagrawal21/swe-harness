@@ -8,7 +8,6 @@ sees the operator's private context.
 from __future__ import annotations
 
 import json
-import os
 import selectors
 import shutil
 import subprocess

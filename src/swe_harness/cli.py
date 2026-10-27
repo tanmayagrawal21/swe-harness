@@ -18,8 +18,9 @@ def main(argv: list[str] | None = None) -> int:
     v.add_argument("workflows", nargs="+", type=Path)
 
     b = sub.add_parser("bench", help="run workflow variants over the benchmark")
+    wf_dir = ROOT / "workflows"
     b.add_argument("--workflows", nargs="+", type=Path,
-                   default=[ROOT / "workflows" / "reference.yaml", *sorted((ROOT / "workflows" / "variants").glob("*.yaml"))])
+                   default=[wf_dir / "reference.yaml", *sorted((wf_dir / "variants").glob("*.yaml"))])
     b.add_argument("--executor", default="scripted", choices=["scripted", "claude", "codex", "opencode"])
     b.add_argument("--tasks", nargs="*", help="task ids (default: all)")
     b.add_argument("--out", type=Path)

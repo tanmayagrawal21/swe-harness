@@ -5,9 +5,9 @@ from __future__ import annotations
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 from ..spec import Role, Whip
 
@@ -71,10 +71,10 @@ def run_supervised(executor: Executor, call: AgentCall, whip: Whip | None, emit)
         cancel = threading.Event()
         box: list[AgentResult | BaseException | None] = [None]
 
-        def beat() -> None:
+        def beat(last=last) -> None:
             last[0] = time.monotonic()
 
-        def target() -> None:
+        def target(box=box, cancel=cancel, beat=beat) -> None:
             try:
                 box[0] = executor.run(call, beat, cancel)
             except BaseException as e:  # surfaced below; an executor crash is a failed call

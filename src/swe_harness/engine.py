@@ -95,7 +95,7 @@ class Episode:
             active = [g for g in self.wf.gates if self.wf.roles[g].in_scope(files)]
             self.log.emit("gates_dispatched", pr=pr.number, sha=sha, round=rnd, gates=active)
             with ThreadPoolExecutor(max_workers=max(1, len(active))) as pool:
-                verdicts = list(pool.map(lambda g: self._gate(g, pr, sha, rnd), active))
+                verdicts = list(pool.map(lambda g, s=sha, r=rnd: self._gate(g, pr, s, r), active))
             for v in verdicts:
                 self._history.setdefault(v.role, []).append(v)
             mm = t.main_move

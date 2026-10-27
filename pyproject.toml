@@ -22,4 +22,7 @@ packages = ["src/swe_harness"]
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

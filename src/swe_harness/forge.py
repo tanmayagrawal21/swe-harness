@@ -25,7 +25,9 @@ GIT_ENV = {
 
 
 def git(cwd: str | Path, *args: str, check: bool = True) -> str:
-    env = {**os.environ, **GIT_ENV}
+    # Git may only find a repository AT cwd, never an enclosing one: a broken worktree must fail, not fall
+    # through to whatever repository contains the run directory.
+    env = {**os.environ, **GIT_ENV, "GIT_CEILING_DIRECTORIES": str(Path(cwd).resolve().parent)}
     r = subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True, text=True)
     if check and r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {r.stderr.strip()}")
@@ -34,6 +36,9 @@ def git(cwd: str | Path, *args: str, check: bool = True) -> str:
 
 def remove_worktree(repo: Path, wt: Path) -> None:
     """Remove a worktree this harness created. Scratch files are discarded first; never --force."""
+    top = git(wt, "rev-parse", "--show-toplevel", check=False)
+    if not top or Path(top).resolve() != Path(wt).resolve():
+        raise RuntimeError(f"refusing to clean {wt}: not a worktree root")
     if git(wt, "status", "--porcelain", "--ignored", check=False):
         git(wt, "reset", "-q", "--hard")
         git(wt, "clean", "-qfdx")
@@ -48,7 +53,7 @@ PY_ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 class EventLog:
     def __init__(self, path: Path):
         self.path = path
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # serialises worktree add/remove/prune and branch moves
         self.t0 = time.monotonic()
 
     def emit(self, type_: str, **data) -> dict:
@@ -80,13 +85,14 @@ class PullRequest:
 
 class LocalForge:
     def __init__(self, root: Path, log: EventLog):
+        root = Path(root).resolve()  # git resolves relative paths against -C; the harness must not
         self.root = root
         self.repo = root / "repo"
         self.wt_dir = root / "worktrees"
         self.log = log
         self.prs: dict[int, PullRequest] = {}
         self._ci: dict[str, bool] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # serialises worktree add/remove/prune and branch moves
 
     # -- setup -------------------------------------------------------------------------------------
     def init_from(self, seed: Path, message: str = "Initial commit") -> str:
@@ -121,14 +127,13 @@ class LocalForge:
     # -- worktrees ---------------------------------------------------------------------------------
     def worktree(self, ref: str, detach: bool = True, label: str = "wt") -> Path:
         wt = self.wt_dir / f"{label}-{uuid.uuid4().hex[:8]}"  # unique: parallel agents never collide
-        if detach:
-            git(self.repo, "worktree", "add", "-q", "--detach", str(wt), ref)
-        else:
-            git(self.repo, "worktree", "add", "-q", str(wt), ref)
+        with self._lock:
+            git(self.repo, "worktree", "add", "-q", *(["--detach"] if detach else []), str(wt), ref)
         return wt
 
     def remove_worktree(self, wt: Path) -> None:
-        remove_worktree(self.repo, wt)
+        with self._lock:
+            remove_worktree(self.repo, wt)
 
     # -- PRs ---------------------------------------------------------------------------------------
     def open_pr(self, title: str, body: str, branch: str) -> PullRequest:

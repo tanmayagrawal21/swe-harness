@@ -73,6 +73,40 @@ Live executors require `--tasks`, so a full run is never started by accident. Ea
 `claude -p` process (stream-json output). It runs with `--setting-sources project,local`, so your user-level
 memory, CLAUDE.md and hooks never reach an agent. Gates also get `--disallowedTools Edit Write ...`.
 
+## Talk to it from any agent (MCP)
+
+The harness ships a stdio MCP server, so any MCP-capable agent can be the conversational front end:
+"compare the reference with no-privacy", "why did the bug task merge?", "try a variant with two reviewers".
+The agent drives the harness, but it can't merge, edit the reference workflow or start a paid run unless
+the call says the owner agreed to the cost (`confirm_live`). Agent instructions live in [AGENTS.md](AGENTS.md),
+which Codex, OpenCode and Cursor read; `CLAUDE.md` imports it for Claude Code.
+
+| tool | what it does |
+|---|---|
+| `run_bench` | starts a run in the background, returns a `run_id` immediately |
+| `run_status` | progress plus notable events (whips, merges, round caps) since `since` |
+| `get_report` | compact metrics table; `detail=full` for the markdown report |
+| `explain_episode` | condensed timeline of one task; private values are redacted |
+| `propose_variant` | writes a new, validated variant; never overwrites |
+| `validate_workflow`, `list_workflows`, `list_tasks`, `list_runs` | discovery |
+
+**Built to be fast.** It uses only the standard library (no MCP SDK import) and is launched straight from
+the venv, with no package manager on the start path. Long work runs in a detached process, and outputs are
+capped. Measured: about 50 ms startup and under 60 ms per call. `tests/test_mcp_server.py` fails if startup
+exceeds 2 s or a call exceeds 0.5 s.
+
+Run `uv sync` first, then point your client at `<repo>/.venv/bin/swe-harness-mcp`:
+
+| client | config |
+|---|---|
+| Claude Code | `.mcp.json` in this repo (already included) |
+| Codex CLI | `~/.codex/config.toml`: `[mcp_servers.swe-harness]` with `command = "<repo>/.venv/bin/swe-harness-mcp"` |
+| Cursor | `.cursor/mcp.json`: `{"mcpServers": {"swe-harness": {"command": "<repo>/.venv/bin/swe-harness-mcp"}}}` |
+| Gemini CLI | `.gemini/settings.json`: same `mcpServers` shape as Cursor |
+| OpenCode | `opencode.json`: `{"mcp": {"swe-harness": {"type": "local", "command": ["<repo>/.venv/bin/swe-harness-mcp"]}}}` |
+
+Without MCP, use the CLI directly; the same functions sit behind both.
+
 ## Benchmark
 
 `bench/seed/` is a tiny order library (`toyshop`) with a safety check: orders above a limit need an approver.
@@ -125,6 +159,7 @@ src/swe_harness/forge.py     local git forge + append-only event log (nothing is
 src/swe_harness/executors/   scripted (dry), claude_code, cli (codex/opencode, experimental)
 src/swe_harness/score.py     replay-based scoring against ground truth
 src/swe_harness/privacy.py   private-terms scanner (reports term #k, never the term)
+src/swe_harness/mcp_server.py stdio MCP server for any agent client
 bench/                       seed repo, fictional private profile, labelled tasks
 docs/adr/                    decisions
 ```

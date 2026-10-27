@@ -1,0 +1,5 @@
+extends: ../reference.yaml
+name: control-all
+description: Reference, but the control gate reviews every PR instead of only safety-named paths.
+roles:
+  control: {scope: []}

@@ -1,7 +1,7 @@
 """Deterministic, offline executor for dry runs. It exercises the harness plumbing and the scorer, for free.
 
 Dry-mode numbers validate the harness, NOT a model: gate detection is simulated from ground truth with
-a seeded recall per (role, defect kind). The privacy gate is the exception; it runs the real scanner.
+a recall per (role, defect kind), seeded by (task, role, round) so runs are reproducible. The privacy gate is the exception; it runs the real scanner.
 """
 
 from __future__ import annotations
@@ -82,9 +82,9 @@ class ScriptedExecutor(Executor):
                               load_terms(call.context["terms_path"]))
             return ok if not found else block + "\n" + "\n".join(f"- {f.where}: private data" for f in found)
         recall = self.recall.get(role.name, {}).get(task.kind, 0.0)
-        if recall and defect_present(call.cwd, task) and _chance(task.id, role.name, sha) < recall:
+        if recall and defect_present(call.cwd, task) and _chance(task.id, role.name, str(call.round)) < recall:
             return f"{block}\n- {task.kind} defect: behaviour differs from the issue's specification"
-        if self.false_positive and _chance("fp", task.id, role.name, sha) < self.false_positive:
+        if self.false_positive and _chance("fp", task.id, role.name, str(call.round)) < self.false_positive:
             return f"{block}\n- (simulated false positive)"
         return ok
 

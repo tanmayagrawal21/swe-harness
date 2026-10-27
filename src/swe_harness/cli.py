@@ -35,7 +35,19 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--out", type=Path, required=True)
     g.add_argument("-n", type=int, default=6)
     g.add_argument("--seed", type=int, default=0)
+    s = sub.add_parser("build-swebench", help="materialise SWE-bench Verified review tasks (downloads data)")
+    s.add_argument("--out", type=Path, required=True)
+    s.add_argument("--repos", nargs="*", help="default: psf/requests pylint-dev/pylint pytest-dev/pytest")
+    s.add_argument("--entries", nargs="*", help="swe-bench/experiments verified entry names")
+    s.add_argument("--limit", type=int, help="max instances")
     a = ap.parse_args(argv)
+
+    if a.cmd == "build-swebench":
+        from .sources.swebench import build
+
+        out = build(a.out, a.repos, a.entries, a.limit)
+        print((out / "SOURCE.md").read_text().strip())
+        return 0
 
     if a.cmd == "gen-privacy":
         from .gen_privacy import generate

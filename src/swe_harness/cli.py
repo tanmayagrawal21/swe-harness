@@ -23,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
                    default=[wf_dir / "reference.yaml", *sorted((wf_dir / "variants").glob("*.yaml"))])
     b.add_argument("--executor", default="scripted", choices=["scripted", "claude", "codex", "opencode"])
     b.add_argument("--tasks", nargs="*", help="task ids (default: all)")
+    b.add_argument("--task-root", type=Path, help="task source dir with tasks/ and private_profile/ (default: bench/)")
     b.add_argument("--out", type=Path)
     b.add_argument("--jobs", type=int, default=4)
     b.add_argument("--whip-seconds", type=float, help="override every whip threshold (dry runs use 0.3)")
@@ -30,7 +31,17 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--model", default="", help="claude executor: one model for every role")
     b.add_argument("--require-zero-bypass", default="reference",
                    help="exit non-zero if this variant has any gate-bypass merge ('' to disable)")
+    g = sub.add_parser("gen-privacy", help="generate fictional privacy-trap tasks into a directory")
+    g.add_argument("--out", type=Path, required=True)
+    g.add_argument("-n", type=int, default=6)
+    g.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
+
+    if a.cmd == "gen-privacy":
+        from .gen_privacy import generate
+
+        print(generate(a.out, a.n, a.seed))
+        return 0
 
     if a.cmd == "validate":
         for p in a.workflows:
@@ -43,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     whip = a.whip_seconds if a.whip_seconds is not None else (0.3 if a.executor == "scripted" else None)
     opts = {"max_budget_usd": a.max_budget_usd, "model_override": a.model} if a.executor == "claude" else {}
-    res = run_bench(a.workflows, a.executor, a.out, a.tasks, whip, a.jobs, opts)
+    res = run_bench(a.workflows, a.executor, a.out, a.tasks, whip, a.jobs, opts, a.task_root)
     print((Path(res["out"]) / "report.md").read_text())
     print(f"results: {res['out']}")
     gate = a.require_zero_bypass

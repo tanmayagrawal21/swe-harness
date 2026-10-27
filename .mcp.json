@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "swe-harness": {
+      "command": ".venv/bin/swe-harness-mcp",
+      "args": []
+    }
+  }
+}

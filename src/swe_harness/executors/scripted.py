@@ -1,7 +1,8 @@
 """Deterministic, offline executor for dry runs. It exercises the harness plumbing and the scorer, for free.
 
 Dry-mode numbers validate the harness, NOT a model: gate detection is simulated from ground truth with
-a recall per (role, defect kind), seeded by (task, role, round) so runs are reproducible. The privacy gate is the exception; it runs the real scanner.
+a recall per (role, defect kind),
+seeded by (task, role, round) so runs are reproducible. The privacy gate is the exception; it runs the real scanner.
 """
 
 from __future__ import annotations

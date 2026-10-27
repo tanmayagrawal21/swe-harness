@@ -210,6 +210,42 @@ Dry result (n=6, seed 0): the reference blocks 6/6 leaks and merges 6/6 clean tw
 the 3 diff leaks reach `main`. With the default squash message, the 3 commit-message leaks do. Public
 datasets to adapt next (SWE-bench model patches, CVEfixes) are surveyed in [docs/DATASETS.md](docs/DATASETS.md).
 
+## Public-data tiers
+
+Two sources build tasks from public data at run time into `~/.cache/swe-harness` (override with
+`SWE_HARNESS_CACHE`). Nothing third-party is committed. Their tasks are **review-only**: the dataset's
+label describes the exact PR, so the gates get one round and there's no author fix.
+
+```bash
+uv run swe-harness build-swebench --out runs/swebench
+```
+
+```bash
+uv run swe-harness build-ghsa --out runs/ghsa --limit 15
+```
+
+- **SWE-bench Verified review tier** (correctness). Real model patches from `swe-bench/experiments`,
+  labelled by each submission's published `resolved` list, plus the gold patch. The default slice covers the
+  requests, pylint and pytest instances (37) across 3 submissions. That gives 64 PRs that should merge and 40
+  that should be blocked; 6 corrupt published patches are dropped.
+- **GitHub Advisory Database tier** (safety, CC0). Reviewed pip advisories whose fix is one small
+  Python-only commit. Each yields the fix (should merge) and the fix reverted (should be blocked; tests and docs
+  excluded), with no hint to the gates that it's a revert.
+
+### First live results (Sonnet for every role; small samples, so indicative only)
+
+| tier | workflow | bad PRs blocked | good PRs merged | bypass merges | fresh tokens / merged PR | USD / merged PR (notional) |
+|---|---|---|---|---|---|---|
+| SWE-bench (10 requests items) | reference | 4/5 | 5/5 | 0 | 52.7k | 0.44 |
+| advisories (4 fix/revert pairs) | reference | 4/4 | 3/4 | 0 | 91.2k | 0.67 |
+| advisories (same 4 pairs) | control-all | 4/4 | 3/4 | 0 | 164.7k | 1.44 |
+
+**What this shows.** The reference control gate is scoped by path globs, so on the full advisory tier it
+was dispatched on only **2 of 15** vulnerability-reintroducing PRs. On the live slice the reviewer caught all
+four reverts by itself. Running control on every PR cost about 2× with no gain on this sample. Whether
+path-scoped control is enough needs a larger live sample. The first live run also changed the verdict protocol
+(see ADR 0001).
+
 ## Add a task
 
 Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidden_test.py` (required for
@@ -218,7 +254,7 @@ Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidd
 ## Status and limits (milestone 1)
 
 - The local forge stands in for GitHub; there is no GitHub adapter yet.
-- The dry-mode gates are simulated. Only live executors measure a model.
+- The dry-mode gates are simulated. Only live executors measure a model, and the live samples so far are small.
 - One PR per episode, so merge-train ordering and cross-PR staleness aren't measured yet (main moving is).
 - QA and auditor roles are wired as observers, but not scored.
 - The benchmark is small (8 tasks). Treat the live numbers as indicative.

@@ -10,6 +10,7 @@ import hashlib
 import shutil
 import subprocess
 import sys
+import threading
 
 from ..forge import git
 from ..privacy import load_terms, scan_diff
@@ -35,15 +36,23 @@ class ScriptedExecutor(Executor):
         self.false_positive = false_positive
 
     def run(self, call: AgentCall, heartbeat, cancel) -> AgentResult:
-        heartbeat()
-        role = call.role
-        if role.kind == "author":
-            text = self._author(call)
-        elif role.kind == "gate":
-            text = self._gate(call)
-        else:
-            text = "no findings"
-        heartbeat()
+        working = threading.Event()
+
+        def tick() -> None:  # a live agent streams output while it works; so does this one
+            while not working.wait(0.05):
+                heartbeat()
+
+        threading.Thread(target=tick, daemon=True).start()
+        try:
+            role = call.role
+            if role.kind == "author":
+                text = self._author(call)
+            elif role.kind == "gate":
+                text = self._gate(call)
+            else:
+                text = "no findings"
+        finally:
+            working.set()
         return AgentResult(text=text, input_tokens=len(call.brief) // 4 + 1500, output_tokens=150,
                            synthetic_usage=True)
 

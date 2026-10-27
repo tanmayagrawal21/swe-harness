@@ -41,7 +41,7 @@ Keep an item only if the oracle flags the block version and not the merge versio
    unresolved model patches), clone the repo at `base_commit` and apply the patch as the PR. Gates review it;
    the precomputed label decides. The scored metrics are bad PRs blocked and good PRs merged. CI is skipped
    because these repos' suites need their own environments.
-3. **Privacy generator.** Seeded generator of leak traps across the three surfaces (diff, commit message,
+3. **Privacy generator** (done: `gen_privacy.py`, `swe-harness gen-privacy`). Seeded generator of leak traps across the three surfaces (diff, commit message,
    PR text), plus clean controls with obviously fictional values.
 4. **CVEfixes Python slice.** Reversed fix commits with a Bandit oracle, as control-gate items.
 

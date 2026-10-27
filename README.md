@@ -191,6 +191,25 @@ progress, so the whip can tell slow from stuck. Stop promptly when `cancel` is s
 it in `executors/__init__.py:make_executor`. For a tool with a CLI, a command template in `executors/cli.py`
 may be enough. The Codex and OpenCode presets there are untested and report no usage yet.
 
+## Task sources and generated traps
+
+`--task-root DIR` runs any task source: a directory with `tasks/` and `private_profile/terms.txt`. The first
+generated source is a seeded privacy-trap generator. It makes fictional people, plants their values in a
+diff (module, JSON fixture or docstring) or only in the commit message, and pairs every leak with a clean
+twin that uses example values:
+
+```bash
+uv run swe-harness gen-privacy --out runs/gen-privacy -n 6 --seed 0
+```
+
+```bash
+uv run swe-harness bench --task-root runs/gen-privacy --workflows workflows/reference.yaml workflows/variants/no-privacy.yaml workflows/variants/default-squash.yaml
+```
+
+Dry result (n=6, seed 0): the reference blocks 6/6 leaks and merges 6/6 clean twins. Without the privacy gate,
+the 3 diff leaks reach `main`. With the default squash message, the 3 commit-message leaks do. Public
+datasets to adapt next (SWE-bench model patches, CVEfixes) are surveyed in [docs/DATASETS.md](docs/DATASETS.md).
+
 ## Add a task
 
 Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidden_test.py` (required for

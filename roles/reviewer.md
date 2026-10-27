@@ -11,5 +11,5 @@ issue, and the base branch name.
    c. Correctness on real inputs, including boundaries and off-by-one cases. Does the code do exactly
       what the issue specifies? Check the legitimate path still works.
    d. Tests exist for every risky path and use fictional data.
-3. Reply. The FIRST line is exactly `APPROVE <sha>` or `REQUEST CHANGES <sha>`. Then blocking items
+3. Reply with exactly one verdict line, on its own: `APPROVE <sha>` or `REQUEST CHANGES <sha>`. Add blocking items
    only, each with file:line and a proposed fix as a short diff. Under 150 words.

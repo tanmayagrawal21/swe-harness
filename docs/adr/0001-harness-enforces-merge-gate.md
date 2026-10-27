@@ -7,8 +7,10 @@ moved. Rules that live only in prompts can be skipped by the agent that holds th
 
 ## Decision
 - The orchestrator is code (`engine.py`), not an agent. Agents only commit (author) or post verdicts (gates).
-- A verdict counts only if its first line binds it to the current head SHA (at least 7 hex chars).
-  Anything else, including a silent or crashed gate, fails closed.
+- A verdict counts only if the reply has exactly one verdict line that binds it to the current head SHA
+  (at least 7 hex chars). No verdict line, conflicting verdicts, or a silent or crashed gate fail closed.
+  (Originally "the first line"; the first live run showed models often reason first, which made 20 of 43
+  verdicts unparseable. Binding to the SHA, not line position, is what matters.)
 - The merge is executed by the harness on behalf of the configured merger role, only when the workflow's
   merge rule holds, with the workflow's explicit squash message.
 - The scorer does not trust the engine. It replays the forge's event log against a fixed policy (the

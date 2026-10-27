@@ -30,16 +30,18 @@ class Verdict:
 
 
 def parse_verdict(role: Role, sha: str, text: str) -> Verdict:
-    """First non-empty line must be '<approve|block token> <sha>'. Anything else fails closed."""
-    first = next((ln for ln in text.splitlines() if ln.strip()), "")
-    first = re.sub(r"[*_`#>]", "", first).strip()
-    for token, approved in ((role.approve, True), (role.block, False)):
-        if first.upper().startswith(token.upper()):
-            rest = first[len(token):].split()
-            claimed = rest[0] if rest else ""
-            valid = len(claimed) >= 7 and sha.startswith(claimed)
-            return Verdict(role.name, sha, approved and valid, valid, text)
-    return Verdict(role.name, sha, False, False, text)
+    """Exactly one verdict line, '<approve|block token> <sha>' on its own (markdown ignored), anywhere in the
+    reply. No verdict line, a SHA that is not the head, or conflicting verdicts all fail closed."""
+    pat = re.compile(rf"^({re.escape(role.approve)}|{re.escape(role.block)})\s+([0-9a-f]{{7,40}})$", re.I)
+    found = set()
+    for line in text.splitlines():
+        m = pat.match(re.sub(r"[*_`#>]", "", line).strip())
+        if m:
+            found.add((m.group(1).upper() == role.approve.upper(), sha.startswith(m.group(2).lower())))
+    if len(found) != 1:
+        return Verdict(role.name, sha, False, False, text)
+    approved, bound = found.pop()
+    return Verdict(role.name, sha, approved and bound, bound, text)
 
 
 class Episode:
@@ -149,11 +151,18 @@ class Episode:
         wt = self.forge.worktree(sha, label=f"{name}-{pr.number}-{sha[:8]}")
         brief = (f"{self._rules('gate')}PR #{pr.number}: {pr.title}\nHead SHA: {sha}\nBase branch: main\n"
                  f"Issue:\n{self.task.issue}\n")
-        if name == "privacy" or role.prompt.find("terms") >= 0:
-            brief += (f"Private terms file (never print it): {self.terms}\nScanner: {sys.executable} -m "
-                      f"swe_harness.privacy --terms {self.terms} --diff main...HEAD\n")
+        if self.task.review_note:
+            brief += f"\nBenchmark condition: {self.task.review_note}\n"
+        ctx = dict(self.ctx)
+        if name == "privacy" or "terms" in role.prompt:
+            scanner = f"{sys.executable} -m swe_harness.privacy --terms {self.terms} --diff main...HEAD"
+            brief += f"Private terms file (never print it): {self.terms}\nScanner: {scanner}\n"
+            ctx["read_dirs"] = [str(self.private)]  # the one directory outside the worktree a gate may read
+            ctx["allow_commands"] = [f"{sys.executable} -m swe_harness.privacy"]
+        brief += (f"\nYour reply must contain exactly one verdict line, on its own: `{role.approve} {sha}` or "
+                  f"`{role.block} {sha}`.\n")
         try:
-            res = self._call(AgentCall(role, brief, wt, pr.number, sha, rnd, "review", self.ctx))
+            res = self._call(AgentCall(role, brief, wt, pr.number, sha, rnd, "review", ctx))
         finally:
             self.forge.remove_worktree(wt)
         v = parse_verdict(role, sha, res.text if res.ok else "")

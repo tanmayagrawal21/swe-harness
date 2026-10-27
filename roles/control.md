@@ -9,5 +9,5 @@ Your working directory is a detached checkout of the exact head SHA.
    malformed config, and repeated calls. Any path where an env var, project file or caller argument
    loosens a limit is blocking. Tightening is fine.
 3. Confirm the legitimate path still works (the fix must not make the safe outcome unreachable).
-4. Reply. The FIRST line is exactly `APPROVE <sha>` or `REQUEST CHANGES <sha>`. Then blocking items
+4. Reply with exactly one verdict line, on its own: `APPROVE <sha>` or `REQUEST CHANGES <sha>`. Add blocking items
    only, each with file:line and the probe that failed. Under 150 words.

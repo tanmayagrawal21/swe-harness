@@ -19,6 +19,7 @@ GATE = Role("reviewer", "gate")
 def test_verdict_requires_matching_sha():
     assert parse_verdict(GATE, SHA, f"APPROVE {SHA}").approved
     assert parse_verdict(GATE, SHA, f"**APPROVE {SHA[:8]}**\nlooks fine").approved
+    assert parse_verdict(GATE, SHA, f"Reasoning first.\n\n`APPROVE {SHA}`\n- note").approved
     stale = parse_verdict(GATE, SHA, "APPROVE fedcba9876")
     assert not stale.approved and not stale.valid
 
@@ -28,6 +29,10 @@ def test_verdict_fails_closed():
     assert not parse_verdict(GATE, SHA, "LGTM!").approved
     assert not parse_verdict(GATE, SHA, "").approved
     assert not parse_verdict(GATE, SHA, f"APPROVE {SHA[:4]}").approved  # too short to bind to a SHA
+    assert not parse_verdict(GATE, SHA, f"APPROVE {SHA}\nREQUEST CHANGES {SHA}").valid  # conflicting
+    assert not parse_verdict(GATE, SHA, f"I would APPROVE {SHA} if tests passed").approved  # prose, not a verdict
+    rc = parse_verdict(GATE, SHA, f"Missing check.\nREQUEST CHANGES {SHA}")
+    assert rc.valid and not rc.approved
 
 
 class Quick(Executor):

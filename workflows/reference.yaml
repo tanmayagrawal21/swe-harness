@@ -72,5 +72,5 @@ rules:
     - Reply in under 100 words: what changed and the test result.
   gate: |
     - Review the exact SHA given. Read-only: never edit, commit, push or merge.
-    - The first line of your reply is the verdict and the SHA, nothing else.
+    - Your reply contains exactly one verdict line, on its own: the verdict token and the full head SHA.
     - Blocking items only, each with file:line. Never quote private values; name their category.

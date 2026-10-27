@@ -10,6 +10,7 @@ dev = ["pytest>=8", "ruff>=0.6"]
 
 [project.scripts]
 swe-harness = "swe_harness.cli:main"
+swe-harness-mcp = "swe_harness.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]

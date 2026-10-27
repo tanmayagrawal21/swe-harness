@@ -89,7 +89,7 @@ class Episode:
             f.init_from(self.seed)
         branch = f"task/{t.id}"
         if t.pr_patch:
-            f.commit_patch(branch, t.pr_patch, t.pr_message)
+            f.commit_patch(branch, t.pr_patch, t.pr_message, reverse=t.pr_reverse, exclude=t.pr_exclude)
         else:
             f.commit_overlay(branch, t.pr_dir, t.pr_message)
         pr = f.open_pr(t.pr_title, t.pr_body, branch)

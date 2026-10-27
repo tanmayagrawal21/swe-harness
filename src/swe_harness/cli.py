@@ -40,7 +40,16 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--repos", nargs="*", help="default: psf/requests pylint-dev/pylint pytest-dev/pytest")
     s.add_argument("--entries", nargs="*", help="swe-bench/experiments verified entry names")
     s.add_argument("--limit", type=int, help="max instances")
+    h = sub.add_parser("build-ghsa", help="materialise GitHub Advisory Database security tasks (uses gh, downloads)")
+    h.add_argument("--out", type=Path, required=True)
+    h.add_argument("--limit", type=int, default=15, help="max advisories (2 tasks each)")
     a = ap.parse_args(argv)
+
+    if a.cmd == "build-ghsa":
+        from .sources.ghsa import build as build_ghsa
+
+        print((build_ghsa(a.out, a.limit) / "SOURCE.md").read_text().strip())
+        return 0
 
     if a.cmd == "build-swebench":
         from .sources.swebench import build

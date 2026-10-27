@@ -26,6 +26,8 @@ class Task:
     seed: dict | None = None  # {git, commit}: start from an upstream repo instead of bench/seed
     oracle: str = "test"  # test: hidden_test.py decides; label: the dataset's published label decides
     ci: str = "run"  # skip: the upstream suite needs its own environment; CI is recorded as skipped
+    pr_reverse: bool = False  # apply pr.patch in reverse (e.g. a security fix reverted)
+    pr_exclude: list[str] = field(default_factory=list)  # path globs left out of pr.patch
 
     @property
     def pr_dir(self) -> Path:
@@ -61,7 +63,8 @@ def load_task(d: Path) -> Task:
              pr_body=pr.get("body", ""), pr_message=pr["commit_message"],
              fix_message=(data.get("fix") or {}).get("commit_message", "Address review"),
              faults=list(data.get("faults") or []), main_move=data.get("main_move"), seed=data.get("seed"),
-             oracle=data.get("oracle", "test"), ci=data.get("ci", "run"))
+             oracle=data.get("oracle", "test"), ci=data.get("ci", "run"), pr_reverse=bool(pr.get("reverse")),
+             pr_exclude=list(pr.get("exclude") or []))
     if t.oracle not in ("test", "label") or t.ci not in ("run", "skip"):
         raise ValueError(f"{d}: oracle must be test|label and ci run|skip")
     if kind in ("bug", "unsafe") and t.oracle == "test" and t.hidden_test is None:

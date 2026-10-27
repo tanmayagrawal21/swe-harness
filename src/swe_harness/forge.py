@@ -129,12 +129,14 @@ class LocalForge:
             finally:
                 self.remove_worktree(wt)
 
-    def commit_patch(self, branch: str, patch: Path, message: str, start: str = "main") -> str:
-        """Apply a unified diff onto a new branch from `start` and commit it."""
+    def commit_patch(self, branch: str, patch: Path, message: str, start: str = "main", reverse: bool = False,
+                     exclude: list[str] | None = None) -> str:
+        """Apply a unified diff (optionally reversed, minus excluded paths) onto a new branch and commit it."""
         with self._lock:
             wt = self.worktree(start, detach=True)
             try:
-                git(wt, "apply", "--whitespace=nowarn", str(patch.resolve()))
+                git(wt, "apply", "--whitespace=nowarn", *(["-R"] if reverse else []),
+                    *[f"--exclude={g}" for g in exclude or []], str(patch.resolve()))
                 git(wt, "add", "-A")
                 git(wt, "commit", "-q", "-m", message)
                 sha = git(wt, "rev-parse", "HEAD")

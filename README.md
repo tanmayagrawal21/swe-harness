@@ -233,4 +233,4 @@ Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidd
 
 ## License
 
-Not yet chosen.
+MIT. See [LICENSE](LICENSE).

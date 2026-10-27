@@ -91,7 +91,9 @@ class ScriptedExecutor(Executor):
 
 
 def defect_present(checkout, task) -> bool:
-    """Ground truth: the task's hidden test fails on this checkout."""
+    """Ground truth: the task's hidden test fails on this checkout, or the dataset labels the PR as bad."""
+    if task.oracle == "label":
+        return task.kind in ("bug", "unsafe")
     if task.hidden_test is None:
         return False
     dst = checkout / "_hidden_test.py"

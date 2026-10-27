@@ -81,9 +81,17 @@ class Episode:
     # -- the loop ----------------------------------------------------------------------------------
     def run(self) -> bool:
         t, f = self.task, self.forge
-        f.init_from(self.seed)
+        if t.seed:
+            from .sources import git_seed, seed_repo
+
+            f.clone_from(seed_repo(git_seed(t.seed["git"], t.seed["commit"])))
+        else:
+            f.init_from(self.seed)
         branch = f"task/{t.id}"
-        f.commit_overlay(branch, t.pr_dir, t.pr_message)
+        if t.pr_patch:
+            f.commit_patch(branch, t.pr_patch, t.pr_message)
+        else:
+            f.commit_overlay(branch, t.pr_dir, t.pr_message)
         pr = f.open_pr(t.pr_title, t.pr_body, branch)
         self.log.emit("episode_start", task=t.id, kind=t.kind, workflow=self.wf.name,
                       executor=self.executor.name, pr=pr.number)
@@ -91,7 +99,7 @@ class Episode:
         while True:
             sha = f.pr_head(pr.number)
             files = f.changed_files(pr.number)
-            ci = f.run_ci(sha)
+            ci = f.run_ci(sha, skip=t.ci == "skip")
             active = [g for g in self.wf.gates if self.wf.roles[g].in_scope(files)]
             self.log.emit("gates_dispatched", pr=pr.number, sha=sha, round=rnd, gates=active)
             with ThreadPoolExecutor(max_workers=max(1, len(active))) as pool:

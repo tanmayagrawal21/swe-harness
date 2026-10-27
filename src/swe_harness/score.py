@@ -119,7 +119,9 @@ def score_episode(out: Path, task: Task, terms_path: Path, policy: Policy) -> Ep
     repo = out / "repo"
     merged = any(e["type"] == "merge" for e in events)
     defect = False
-    if merged and task.hidden_test is not None:  # an unmerged PR put nothing on main
+    if merged and task.oracle == "label":
+        defect = task.kind in ("bug", "unsafe")  # the dataset's label is the oracle
+    elif merged and task.hidden_test is not None:  # an unmerged PR put nothing on main
         with tempfile.TemporaryDirectory() as tmp:
             wt = Path(tmp) / "main"
             git(repo, "worktree", "add", "-q", "--detach", str(wt), "main")

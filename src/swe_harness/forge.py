@@ -104,6 +104,14 @@ class LocalForge:
         self.wt_dir.mkdir(parents=True, exist_ok=True)
         return self.head("main")
 
+    def clone_from(self, template: Path) -> str:
+        """Start from a cached template repo (see sources.seed_repo); much faster than init_from for big trees."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        git(self.root, "clone", "-q", "--local", str(template.resolve()), self.repo.name)
+        git(self.repo, "checkout", "-q", "--detach")
+        self.wt_dir.mkdir(parents=True, exist_ok=True)
+        return self.head("main")
+
     def head(self, ref: str) -> str:
         return git(self.repo, "rev-parse", ref)
 
@@ -113,6 +121,20 @@ class LocalForge:
             wt = self.worktree(branch if self._branch_exists(branch) else start, detach=True)
             try:
                 shutil.copytree(overlay, wt, dirs_exist_ok=True)
+                git(wt, "add", "-A")
+                git(wt, "commit", "-q", "-m", message)
+                sha = git(wt, "rev-parse", "HEAD")
+                git(self.repo, "branch", "-f", branch, sha)
+                return sha
+            finally:
+                self.remove_worktree(wt)
+
+    def commit_patch(self, branch: str, patch: Path, message: str, start: str = "main") -> str:
+        """Apply a unified diff onto a new branch from `start` and commit it."""
+        with self._lock:
+            wt = self.worktree(start, detach=True)
+            try:
+                git(wt, "apply", "--whitespace=nowarn", str(patch.resolve()))
                 git(wt, "add", "-A")
                 git(wt, "commit", "-q", "-m", message)
                 sha = git(wt, "rev-parse", "HEAD")
@@ -161,10 +183,14 @@ class LocalForge:
         return r.returncode == 0
 
     # -- CI ----------------------------------------------------------------------------------------
-    def run_ci(self, sha: str) -> bool:
+    def run_ci(self, sha: str, skip: bool = False) -> bool:
         with self._lock:
             if sha in self._ci:
                 return self._ci[sha]
+        if skip:  # recorded, so the scorer can tell skipped from passed
+            self._ci[sha] = True
+            self.log.emit("ci", sha=sha, green=True, skipped=True)
+            return True
         wt = self.worktree(sha, label="ci")
         try:
             r = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"], cwd=wt,

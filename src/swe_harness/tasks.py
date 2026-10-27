@@ -23,10 +23,18 @@ class Task:
     fix_message: str = ""
     faults: list[dict] = field(default_factory=list)  # [{role, round}] -> that agent goes silent once
     main_move: dict | None = None  # {after_round, message}: an unrelated commit lands on main
+    seed: dict | None = None  # {git, commit}: start from an upstream repo instead of bench/seed
+    oracle: str = "test"  # test: hidden_test.py decides; label: the dataset's published label decides
+    ci: str = "run"  # skip: the upstream suite needs its own environment; CI is recorded as skipped
 
     @property
     def pr_dir(self) -> Path:
         return self.dir / "pr"
+
+    @property
+    def pr_patch(self) -> Path | None:
+        p = self.dir / "pr.patch"
+        return p if p.exists() else None
 
     @property
     def fix_dir(self) -> Path | None:
@@ -52,8 +60,11 @@ def load_task(d: Path) -> Task:
     t = Task(id=data["id"], dir=d, kind=kind, title=data["title"], issue=data["issue"], pr_title=pr["title"],
              pr_body=pr.get("body", ""), pr_message=pr["commit_message"],
              fix_message=(data.get("fix") or {}).get("commit_message", "Address review"),
-             faults=list(data.get("faults") or []), main_move=data.get("main_move"))
-    if kind in ("bug", "unsafe") and t.hidden_test is None:
+             faults=list(data.get("faults") or []), main_move=data.get("main_move"), seed=data.get("seed"),
+             oracle=data.get("oracle", "test"), ci=data.get("ci", "run"))
+    if t.oracle not in ("test", "label") or t.ci not in ("run", "skip"):
+        raise ValueError(f"{d}: oracle must be test|label and ci run|skip")
+    if kind in ("bug", "unsafe") and t.oracle == "test" and t.hidden_test is None:
         raise ValueError(f"{d}: {kind} tasks need hidden_test.py")
     return t
 

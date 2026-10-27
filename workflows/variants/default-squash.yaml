@@ -1,0 +1,4 @@
+extends: ../reference.yaml
+name: default-squash
+description: Reference, but the merge uses the default squash body (concatenated commit messages).
+merge: {squash_message: null}

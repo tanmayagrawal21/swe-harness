@@ -1,0 +1,5 @@
+extends: ../reference.yaml
+name: no-control
+description: Reference minus the control (safety) gate.
+gates: [reviewer, privacy]
+merge: {requires: [reviewer, privacy]}

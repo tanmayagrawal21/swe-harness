@@ -1,0 +1,76 @@
+# Reference workflow: the owner's gated multi-agent process (see README "Philosophy").
+name: reference
+description: >
+  Single-decision PRs by one author; reviewer, privacy and control gates on the same head SHA;
+  only the reviewer merges, with an explicit squash message; round cap with fail-closed descope;
+  whips respawn silent agents. Agents are spawned per event and exit when done.
+
+roles:
+  author:
+    kind: author
+    model: sonnet
+    prompt: ../roles/author.md
+    tools: [Read, Edit, Write, Glob, Grep, "Bash(git *)", "Bash(python -m pytest*)"]
+  reviewer:
+    kind: gate
+    model: opus
+    prompt: ../roles/reviewer.md
+    tools: [Read, Glob, Grep, "Bash(git *)", "Bash(python -m pytest*)"]
+    verdicts: {approve: APPROVE, block: REQUEST CHANGES}
+  privacy:
+    kind: gate
+    model: sonnet
+    prompt: ../roles/privacy.md
+    tools: [Read, Glob, Grep, "Bash(git *)", "Bash(python *)"]
+    verdicts: {approve: PASS, block: FAIL}
+  control:
+    kind: gate
+    model: opus
+    prompt: ../roles/control.md
+    tools: [Read, Glob, Grep, "Bash(git *)", "Bash(python *)"]
+    verdicts: {approve: APPROVE, block: REQUEST CHANGES}
+    scope: ["*guard*", "*config*", "*approval*", "*limit*"]   # safety-relevant paths
+  qa:
+    kind: observer
+    model: sonnet
+    prompt: ../roles/qa.md
+    tools: [Read, Glob, Grep, "Bash(python *)"]
+    trigger: after_merge
+  auditor:
+    kind: observer
+    model: sonnet
+    prompt: ../roles/auditor.md
+    tools: [Read, Glob, Grep]
+    trigger: episode_end
+
+gates: [reviewer, privacy, control]
+
+merge:
+  merger: reviewer            # never the orchestrator or the author
+  requires: [reviewer, privacy, control]   # a gate out of scope for the PR is skipped
+  same_sha: true              # every verdict must be on the current head SHA
+  ci_green: true
+  main_ancestor: true         # current main must be an ancestor of the head
+  squash_message:             # explicit; the default body copies commit messages and can leak
+    subject: "{title} (#{pr})"
+    body: "See PR #{pr}."
+
+round_cap: 3                  # after 3 rounds of changes the PR stays unmerged (fail closed)
+
+whips:                        # per-role silence thresholds; a silent agent is cancelled and respawned
+  - {roles: [author], silent_seconds: 600, max_restarts: 2}
+  - {roles: [reviewer, privacy, control], silent_seconds: 300, max_restarts: 2}
+  - {roles: [qa, auditor], silent_seconds: 600, max_restarts: 1}
+
+rules:
+  author: |
+    - One decision per PR. Work only on the PR branch already checked out. Never force-push, never merge.
+    - Tests run offline with fictional data only ("Jane Doe", example.com). Never copy values from any
+      private profile or file outside the repo into code, tests, docs or commit messages.
+    - Never loosen a control, limit or trust boundary. Env vars and project files may only tighten.
+    - Run the test suite, check the exit code directly (never through a pipe), then commit.
+    - Reply in under 100 words: what changed and the test result.
+  gate: |
+    - Review the exact SHA given. Read-only: never edit, commit, push or merge.
+    - The first line of your reply is the verdict and the SHA, nothing else.
+    - Blocking items only, each with file:line. Never quote private values; name their category.

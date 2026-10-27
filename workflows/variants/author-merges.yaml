@@ -1,0 +1,5 @@
+extends: ../reference.yaml
+name: author-merges
+description: No gates; the author merges as soon as CI is green (the pre-gate failure mode).
+gates: []
+merge: {merger: author, requires: []}

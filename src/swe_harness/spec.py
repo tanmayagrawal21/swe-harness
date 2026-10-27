@@ -92,6 +92,9 @@ def _deep_merge(base: dict, over: dict) -> dict:
 
 def load_raw(path: Path) -> dict:
     data = yaml.safe_load(path.read_text()) or {}
+    for r in (data.get("roles") or {}).values():  # prompt paths are relative to the file declaring them
+        if isinstance(r, dict) and r.get("prompt"):
+            r["prompt"] = str((path.parent / r["prompt"]).resolve())
     parent = data.pop("extends", None)
     if parent:
         data = _deep_merge(load_raw((path.parent / parent).resolve()), data)

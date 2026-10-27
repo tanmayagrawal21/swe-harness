@@ -128,6 +128,9 @@ def build(out: Path, repos: list[str] | None = None, entries: list[str] | None =
                 "pr": {"title": f"Fix {iid}", "commit_message": f"Fix {iid}"},
                 "seed": {"git": f"https://github.com/{r['repo']}.git", "commit": r["base_commit"]},
                 "oracle": "label", "ci": "skip",
+                "review_note": "tests for this issue are evaluated separately and are intentionally not part of "
+                               "this PR. Judge whether the code change correctly fixes the issue; do not block "
+                               "only for missing tests.",
                 "source": {"dataset": "SWE-bench_Verified", "instance": iid, "patch_from": src, "label": label},
             }, sort_keys=False))
             n[label] += 1

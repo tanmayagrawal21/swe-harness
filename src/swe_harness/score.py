@@ -15,7 +15,7 @@ from pathlib import Path
 from statistics import mean
 
 from .executors.scripted import defect_present
-from .forge import git, read_events
+from .forge import git, read_events, remove_worktree
 from .privacy import load_terms, match_terms, scan_tree
 from .spec import Workflow
 from .tasks import Task
@@ -85,7 +85,7 @@ def leaks(repo: Path, events: list[dict], terms: list[str]) -> dict[str, int]:
         try:
             tree = len(scan_tree(wt, terms))
         finally:
-            git(repo, "worktree", "remove", str(wt))
+            remove_worktree(repo, wt)
     log = git(repo, "log", "--format=%B%x00", "main")
     commits = sum(len(match_terms(msg, terms)) for msg in log.split("\x00"))
     comments = sum(len(match_terms(e.get("text", ""), terms)) for e in events if e["type"] == "comment")
@@ -125,7 +125,7 @@ def score_episode(out: Path, task: Task, terms_path: Path, policy: Policy) -> Ep
             try:
                 defect = defect_present(wt, task)
             finally:
-                git(repo, "worktree", "remove", str(wt))
+                remove_worktree(repo, wt)
     done = [e for e in events if e["type"] == "agent_done"]
     end = next((e for e in reversed(events) if e["type"] == "episode_end"), {})
     return EpisodeScore(

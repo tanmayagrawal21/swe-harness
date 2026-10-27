@@ -12,7 +12,7 @@ import subprocess
 import sys
 import threading
 
-from ..forge import git
+from ..forge import PY_ENV, git
 from ..privacy import load_terms, scan_diff
 from .base import AgentCall, AgentResult, Executor
 
@@ -97,7 +97,7 @@ def defect_present(checkout, task) -> bool:
     shutil.copy(task.hidden_test, dst)
     try:
         r = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", dst.name],
-                           cwd=checkout, capture_output=True, text=True)
+                           cwd=checkout, env=PY_ENV, capture_output=True, text=True)
         return r.returncode != 0
     finally:
         dst.unlink()

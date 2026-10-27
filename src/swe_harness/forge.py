@@ -32,6 +32,19 @@ def git(cwd: str | Path, *args: str, check: bool = True) -> str:
     return r.stdout.strip()
 
 
+def remove_worktree(repo: Path, wt: Path) -> None:
+    """Remove a worktree this harness created. Scratch files are discarded first; never --force."""
+    if git(wt, "status", "--porcelain", "--ignored", check=False):
+        git(wt, "reset", "-q", "--hard")
+        git(wt, "clean", "-qfdx")
+    git(repo, "worktree", "remove", str(wt))
+    git(repo, "worktree", "prune")
+
+
+# Test subprocesses must not leave bytecode behind in checkouts.
+PY_ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+
+
 class EventLog:
     def __init__(self, path: Path):
         self.path = path
@@ -115,11 +128,7 @@ class LocalForge:
         return wt
 
     def remove_worktree(self, wt: Path) -> None:
-        if git(wt, "status", "--porcelain", check=False):
-            git(wt, "reset", "-q", "--hard")  # discard an agent's scratch edits in its own worktree
-            git(wt, "clean", "-qfd")
-        git(self.repo, "worktree", "remove", str(wt))  # never --force
-        git(self.repo, "worktree", "prune")
+        remove_worktree(self.repo, wt)
 
     # -- PRs ---------------------------------------------------------------------------------------
     def open_pr(self, title: str, body: str, branch: str) -> PullRequest:
@@ -154,7 +163,7 @@ class LocalForge:
         wt = self.worktree(sha, label="ci")
         try:
             r = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"], cwd=wt,
-                               capture_output=True, text=True)
+                               env=PY_ENV, capture_output=True, text=True)
             green = r.returncode == 0
         finally:
             self.remove_worktree(wt)

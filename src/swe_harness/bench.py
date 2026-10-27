@@ -22,6 +22,7 @@ COLUMNS = [
     ("gate_bypass_merges", "gate-bypass merges"), ("clean_merged", "clean merged"),
     ("merged_prs", "merged PRs"), ("faults_recovered", "faults recovered"), ("mean_detect_s", "detect s"),
     ("mean_recover_s", "recover s"), ("tokens_per_merged_pr", "tokens/merged PR"),
+    ("cached_tokens_per_merged_pr", "cached tokens/merged PR"),
     ("cost_per_merged_pr", "USD/merged PR"),
 ]
 

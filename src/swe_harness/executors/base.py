@@ -28,8 +28,9 @@ class AgentCall:
 class AgentResult:
     text: str
     ok: bool = True
-    input_tokens: int = 0
+    input_tokens: int = 0  # uncached input, including tokens written to the cache
     output_tokens: int = 0
+    cache_read_tokens: int = 0  # cached input re-read; cheap, so reported separately
     cost_usd: float = 0.0
     synthetic_usage: bool = False  # True when usage is estimated (dry mode), not reported by a model
 
@@ -100,6 +101,7 @@ def run_supervised(executor: Executor, call: AgentCall, whip: Whip | None, emit)
             assert r is not None
             emit("agent_done", role=call.role.name, pr=call.pr, round=call.round, attempt=attempt,
                  purpose=call.purpose, ok=r.ok, input_tokens=r.input_tokens, output_tokens=r.output_tokens,
+                 cache_read_tokens=r.cache_read_tokens,
                  cost_usd=r.cost_usd, synthetic_usage=r.synthetic_usage)
             return r
         if attempt >= whip.max_restarts:

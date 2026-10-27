@@ -102,10 +102,11 @@ class EpisodeScore:
     violations: list[dict]
     recovery: list[dict]
     rounds: int
-    tokens: int
+    tokens: int  # uncached input + output
     cost_usd: float
     synthetic_usage: bool
     agent_calls: int = 0
+    cache_read_tokens: int = 0
     notes: list[str] = field(default_factory=list)
 
     @property
@@ -135,6 +136,7 @@ def score_episode(out: Path, task: Task, terms_path: Path, policy: Policy) -> Ep
         tokens=sum(e["input_tokens"] + e["output_tokens"] for e in done),
         cost_usd=round(sum(e["cost_usd"] for e in done), 6),
         synthetic_usage=any(e.get("synthetic_usage") for e in done), agent_calls=len(done),
+        cache_read_tokens=sum(e.get("cache_read_tokens", 0) for e in done),
     )
 
 
@@ -166,6 +168,8 @@ def aggregate(scores: list[EpisodeScore]) -> dict:
         if any(r["detect_s"] is not None for r in recs) else None,
         "mean_recover_s": round(mean(r["recover_s"] for r in rec_ok), 3) if rec_ok else None,
         "tokens_per_merged_pr": round(tokens / len(merged)) if merged else None,
+        "cached_tokens_per_merged_pr": round(sum(s.cache_read_tokens for s in scores) / len(merged))
+        if merged else None,
         "cost_per_merged_pr": round(cost / len(merged), 4) if merged else None,
         "synthetic_usage": any(s.synthetic_usage for s in scores),
     }

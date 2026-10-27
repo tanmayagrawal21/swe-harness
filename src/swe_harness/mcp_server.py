@@ -162,7 +162,7 @@ def get_report(run_id: str, detail: str = "summary") -> str:
     if detail == "full":
         return _cap((d / "report.md").read_text())
     keys = ["bugs_caught", "unsafe_blocked", "leaks_blocked", "gate_bypass_merges", "clean_merged",
-            "faults_recovered", "tokens_per_merged_pr", "cost_per_merged_pr"]
+            "faults_recovered", "tokens_per_merged_pr", "cached_tokens_per_merged_pr", "cost_per_merged_pr"]
     lines = ["variant | " + " | ".join(keys)]
     for name, r in results.items():
         s = r["summary"]

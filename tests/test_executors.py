@@ -21,7 +21,8 @@ def test_claude_result_parsing():
     line = json.dumps({"type": "result", "result": "APPROVE abc1234", "total_cost_usd": 0.12,
                        "usage": {"input_tokens": 10, "cache_read_input_tokens": 90, "output_tokens": 5}})
     r = result_from(parse_line(line))
-    assert (r.text, r.input_tokens, r.output_tokens, r.cost_usd, r.ok) == ("APPROVE abc1234", 100, 5, 0.12, True)
+    assert (r.text, r.input_tokens, r.output_tokens, r.cost_usd, r.ok) == ("APPROVE abc1234", 10, 5, 0.12, True)
+    assert r.cache_read_tokens == 90
     assert parse_line("not json") is None
     assert not result_from(None).ok
 

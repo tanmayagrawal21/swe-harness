@@ -84,8 +84,8 @@ def result_from(final: dict | None) -> AgentResult:
     if not final:
         return AgentResult(text="(no result message)", ok=False)
     usage = final.get("usage") or {}
-    tokens_in = sum(int(usage.get(k) or 0) for k in
-                    ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+    tokens_in = int(usage.get("input_tokens") or 0) + int(usage.get("cache_creation_input_tokens") or 0)
     return AgentResult(text=str(final.get("result") or ""), ok=not final.get("is_error", False),
                        input_tokens=tokens_in, output_tokens=int(usage.get("output_tokens") or 0),
+                       cache_read_tokens=int(usage.get("cache_read_input_tokens") or 0),
                        cost_usd=float(final.get("total_cost_usd") or 0.0))

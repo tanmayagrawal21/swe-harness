@@ -32,3 +32,13 @@ def test_cli_presets(reference):
     assert isinstance(ex, CLIExecutor)
     cmd = ex.command(AgentCall(reference.author, "do it", Path("."), 1))
     assert cmd[:2] == ["codex", "exec"] and cmd[-1].endswith("do it")
+
+
+def test_claude_command_grants_only_named_extra_access(reference):
+    call = AgentCall(reference.roles["privacy"], "scan", Path("."), 1,
+                     context={"read_dirs": ["/run/private"], "allow_commands": ["/venv/python -m swe_harness.privacy"]})
+    cmd = ClaudeCodeExecutor().command(call)
+    assert cmd[cmd.index("--add-dir") + 1] == "/run/private"
+    assert "Bash(/venv/python -m swe_harness.privacy*)" in cmd
+    plain = ClaudeCodeExecutor().command(AgentCall(reference.roles["reviewer"], "x", Path("."), 1))
+    assert "--add-dir" not in plain

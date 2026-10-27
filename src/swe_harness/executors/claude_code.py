@@ -34,8 +34,11 @@ class ClaudeCodeExecutor(Executor):
         model = self.model_override or role.model
         if model:
             cmd += ["--model", model]
-        if role.tools:
-            cmd += ["--allowedTools", *role.tools]
+        for d in call.context.get("read_dirs", []):
+            cmd += ["--add-dir", d]
+        tools = role.tools + [f"Bash({c}*)" for c in call.context.get("allow_commands", [])]
+        if tools:
+            cmd += ["--allowedTools", *tools]
         if role.kind != "author":
             cmd += ["--disallowedTools", *GATE_DENY]
         return cmd

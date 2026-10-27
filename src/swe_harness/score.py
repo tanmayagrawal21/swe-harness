@@ -16,7 +16,7 @@ from statistics import mean
 
 from .executors.scripted import defect_present
 from .forge import git, read_events, remove_worktree
-from .privacy import load_terms, match_terms, scan_tree
+from .privacy import load_terms, match_terms, scan_text
 from .spec import Workflow
 from .tasks import Task
 
@@ -78,14 +78,18 @@ def recovery(events: list[dict]) -> list[dict]:
 
 
 def leaks(repo: Path, events: list[dict], terms: list[str]) -> dict[str, int]:
-    """Private-term hits on each public surface: main's tree, main's commit messages, PR comments."""
-    with tempfile.TemporaryDirectory() as tmp:
-        wt = Path(tmp) / "main"
-        git(repo, "worktree", "add", "-q", "--detach", str(wt), "main")
+    """Private-term hits on each public surface: main's tree, main's commit messages, PR comments.
+
+    The seed commit is the (public) starting point, so only paths changed since it are scanned.
+    """
+    root = git(repo, "rev-list", "--max-parents=0", "main").splitlines()[0]
+    tree = 0
+    for path in git(repo, "diff", "--name-only", "--diff-filter=AMR", root, "main").splitlines():
+        tree += len(match_terms(path, terms))
         try:
-            tree = len(scan_tree(wt, terms))
-        finally:
-            remove_worktree(repo, wt)
+            tree += len(scan_text(git(repo, "show", f"main:{path}"), terms, path))
+        except (RuntimeError, UnicodeDecodeError):
+            continue
     log = git(repo, "log", "--format=%B%x00", "main")
     commits = sum(len(match_terms(msg, terms)) for msg in log.split("\x00"))
     comments = sum(len(match_terms(e.get("text", ""), terms)) for e in events if e["type"] == "comment")

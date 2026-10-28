@@ -1,0 +1,8 @@
+id: 04-stopwords
+kind: feature
+title: Add --stopwords
+issue: |
+  Add `--stopwords FILE` to the command line: FILE lists one word per line (UTF-8; blank lines ignored;
+  matched case-insensitively). Those words are left out of the output and do not count toward `--top`.
+  Also add `wordtally.load_stopwords(path) -> set[str]` (lower-cased). Without the flag, behaviour is unchanged.
+  Add tests.

@@ -1,0 +1,9 @@
+id: 03-cli
+kind: feature
+title: Add a command line
+issue: |
+  Add a command line: `python -m wordtally FILE [--top N]` (use argparse in `wordtally/__main__.py`).
+  - Reads FILE as UTF-8 and prints one line per word, `word<TAB>count`, in `top_words` order.
+  - Without `--top`, prints every word. With `--top N`, the first N.
+  - A missing FILE prints an error to stderr and exits with status 1 (no traceback).
+  Add tests.

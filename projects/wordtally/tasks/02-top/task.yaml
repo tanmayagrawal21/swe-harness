@@ -1,0 +1,9 @@
+id: 02-top
+kind: feature
+title: Add top_words
+issue: |
+  Add `wordtally.top_words(counts: dict[str, int], n: int) -> list[tuple[str, int]]`.
+  - Returns the `n` most frequent `(word, count)` pairs, highest count first; ties are broken by word,
+    alphabetically.
+  - `n <= 0` returns `[]`; `n` larger than the number of words returns all of them.
+  Keep `count_words` working. Add tests.

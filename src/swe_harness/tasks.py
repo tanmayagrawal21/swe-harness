@@ -7,14 +7,14 @@ from pathlib import Path
 
 import yaml
 
-KINDS = {"clean", "bug", "leak", "unsafe"}
+KINDS = {"clean", "bug", "leak", "unsafe", "feature"}
 
 
 @dataclass
 class Task:
     id: str
     dir: Path
-    kind: str  # ground truth for the first PR: clean | bug | leak | unsafe
+    kind: str  # ground truth for the first PR: clean | bug | leak | unsafe | feature (author writes it)
     title: str
     issue: str
     pr_title: str
@@ -40,6 +40,17 @@ class Task:
         return p if p.exists() else None
 
     @property
+    def writes(self) -> bool:
+        """No pre-written PR: the author writes the first version from the issue."""
+        return self.pr_patch is None and not self.pr_dir.is_dir()
+
+    @property
+    def solution_dir(self) -> Path | None:
+        """A known-good implementation; the scripted (dry) author commits it instead of writing code."""
+        d = self.dir / "solution"
+        return d if d.is_dir() else None
+
+    @property
     def fix_dir(self) -> Path | None:
         d = self.dir / "fix"
         return d if d.is_dir() else None
@@ -59,15 +70,18 @@ def load_task(d: Path) -> Task:
     kind = data["kind"]
     if kind not in KINDS:
         raise ValueError(f"{d}: kind must be one of {sorted(KINDS)}")
-    pr = data["pr"]
-    t = Task(id=data["id"], dir=d, kind=kind, title=data["title"], issue=data["issue"], pr_title=pr["title"],
-             pr_body=pr.get("body", ""), pr_message=pr["commit_message"],
+    pr = data.get("pr") or {}
+    t = Task(id=data["id"], dir=d, kind=kind, title=data["title"], issue=data["issue"],
+             pr_title=pr.get("title", data["title"]), pr_body=pr.get("body", ""),
+             pr_message=pr.get("commit_message", data["title"]),
              fix_message=(data.get("fix") or {}).get("commit_message", "Address review"),
              faults=list(data.get("faults") or []), main_move=data.get("main_move"), seed=data.get("seed"),
              oracle=data.get("oracle", "test"), ci=data.get("ci", "run"), pr_reverse=bool(pr.get("reverse")),
              pr_exclude=list(pr.get("exclude") or []), review_note=data.get("review_note", ""))
     if t.oracle not in ("test", "label") or t.ci not in ("run", "skip"):
         raise ValueError(f"{d}: oracle must be test|label and ci run|skip")
+    if kind == "feature" and t.hidden_test is None:
+        raise ValueError(f"{d}: feature tasks need hidden_test.py (the acceptance test)")
     if kind in ("bug", "unsafe") and t.oracle == "test" and t.hidden_test is None:
         raise ValueError(f"{d}: {kind} tasks need hidden_test.py")
     return t

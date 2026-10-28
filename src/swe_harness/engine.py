@@ -46,8 +46,10 @@ def parse_verdict(role: Role, sha: str, text: str) -> Verdict:
 
 class Episode:
     def __init__(self, wf: Workflow, task: Task, executor: Executor, out: Path, seed: Path, terms: Path,
-                 whip_seconds: float | None = None, observers: bool = False):
+                 whip_seconds: float | None = None, observers: bool = False, start: Path | None = None):
+        """start: a repo whose main this episode continues from (a project's previous step)."""
         self.wf, self.task, self.executor, self.out = wf, task, executor, out
+        self.start = start
         self.seed, self.whip_seconds, self.observers = seed, whip_seconds, observers
         out.mkdir(parents=True, exist_ok=True)
         self.private = out / "private"  # outside the repo; never committed
@@ -83,21 +85,30 @@ class Episode:
     # -- the loop ----------------------------------------------------------------------------------
     def run(self) -> bool:
         t, f = self.task, self.forge
-        if t.seed:
+        if self.start:
+            f.clone_from(self.start)
+        elif t.seed:
             from .sources import git_seed, seed_repo
 
             f.clone_from(seed_repo(git_seed(t.seed["git"], t.seed["commit"])))
         else:
             f.init_from(self.seed)
-        branch = f"task/{t.id}"
+        branch, base = f"task/{t.id}", f.head("main")
         if t.pr_patch:
             f.commit_patch(branch, t.pr_patch, t.pr_message, reverse=t.pr_reverse, exclude=t.pr_exclude)
-        else:
+        elif not t.writes:
             f.commit_overlay(branch, t.pr_dir, t.pr_message)
+        else:
+            f.create_branch(branch)
         pr = f.open_pr(t.pr_title, t.pr_body, branch)
         self.log.emit("episode_start", task=t.id, kind=t.kind, workflow=self.wf.name,
-                      executor=self.executor.name, pr=pr.number)
+                      executor=self.executor.name, pr=pr.number, main=base)
         rnd, main_merges, merged = 1, 0, False
+        if t.writes and self._author(pr, base, rnd, "write", "Implement the issue on this branch: code and "
+                                     "tests, then commit. Gates review the PR when you are done.") == base:
+            self.log.emit("author_gave_up", pr=pr.number, sha=base, round=rnd)
+            self.log.emit("episode_end", task=t.id, merged=False, rounds=rnd)
+            return False
         while True:
             sha = f.pr_head(pr.number)
             files = f.changed_files(pr.number)

@@ -63,6 +63,13 @@ class ScriptedExecutor(Executor):
         if call.purpose == "merge_main":
             git(call.cwd, "merge", "--no-edit", "-q", call.context.get("base", "main"))
             return "merged main"
+        if call.purpose == "write":
+            if task.solution_dir is None:
+                return "no implementation available; nothing committed"
+            shutil.copytree(task.solution_dir, call.cwd, dirs_exist_ok=True)
+            git(call.cwd, "add", "-A")
+            git(call.cwd, "commit", "-q", "-m", task.pr_message)
+            return "implemented the issue; tests pass"
         fix = task.fix_dir
         if fix is None or call.context.get("fix_applied"):
             return "no further fix available; leaving the PR as is"

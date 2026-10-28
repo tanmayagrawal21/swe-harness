@@ -43,7 +43,29 @@ def main(argv: list[str] | None = None) -> int:
     h = sub.add_parser("build-ghsa", help="materialise GitHub Advisory Database security tasks (uses gh, downloads)")
     h.add_argument("--out", type=Path, required=True)
     h.add_argument("--limit", type=int, default=15, help="max advisories (2 tasks each)")
+    p = sub.add_parser("build", help="build a project step by step: the author writes each PR, gates merge it")
+    p.add_argument("project", type=Path, help="project dir with project.yaml, seed/ and tasks/")
+    p.add_argument("--workflow", type=Path, default=wf_dir / "reference.yaml")
+    p.add_argument("--executor", default="scripted", choices=["scripted", "claude", "codex", "opencode"])
+    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--keep-going", action="store_true", help="continue after a step is not delivered")
+    p.add_argument("--confirm-live", action="store_true", help="required for executors that spend real tokens")
+    p.add_argument("--max-budget-usd", type=float, default=1.0, help="claude executor: cap per agent call")
+    p.add_argument("--model", default="", help="claude executor: one model for every role")
     a = ap.parse_args(argv)
+
+    if a.cmd == "build":
+        from .project import build
+
+        if a.executor != "scripted" and not a.confirm_live:
+            print("live executors spend real tokens: pass --confirm-live", file=sys.stderr)
+            return 2
+        opts = {"max_budget_usd": a.max_budget_usd, "model_override": a.model} if a.executor == "claude" else {}
+        r = build(a.project, a.out, a.workflow, a.executor, opts, 0.3 if a.executor == "scripted" else None,
+                  a.keep_going)
+        print((a.out / "report.md").read_text())
+        ok = r["delivered"] == r["steps"] and not r["regressions"] and not r["gate_bypass_merges"]
+        return 0 if ok else 1
 
     if a.cmd == "build-ghsa":
         from .sources.ghsa import build as build_ghsa

@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BENCH = ROOT / "bench"
 REFERENCE = ROOT / "workflows" / "reference.yaml"
 COLUMNS = [
-    ("bugs_caught", "bugs caught"), ("unsafe_blocked", "unsafe blocked"), ("leaks_blocked", "leaks blocked"),
+    ("bugs_caught", "bugs caught"), ("unsafe_blocked", "unsafe blocked"),
+    ("control_on_unsafe", "control ran on unsafe"), ("leaks_blocked", "leaks blocked"),
     ("gate_bypass_merges", "gate-bypass merges"), ("clean_merged", "clean merged"),
     ("merged_prs", "merged PRs"), ("faults_recovered", "faults recovered"), ("mean_detect_s", "detect s"),
     ("mean_recover_s", "recover s"), ("tokens_per_merged_pr", "tokens/merged PR"),

@@ -241,7 +241,8 @@ uv run swe-harness build-ghsa --out runs/ghsa --limit 15
 | advisories (same 4 pairs) | control-all | 4/4 | 3/4 | 0 | 164.7k | 1.44 |
 
 **What this shows.** The reference control gate is scoped by path globs, so on the full advisory tier it
-was dispatched on only **2 of 15** vulnerability-reintroducing PRs. On the live slice the reviewer caught all
+was dispatched on only **2 of 15** vulnerability-reintroducing PRs (the report's `control ran on unsafe` column; a free dry run reproduces it).
+On the live slice the reviewer caught all
 four reverts by itself. Running control on every PR cost about 2× with no gain on this sample. Whether
 path-scoped control is enough needs a larger live sample. The first live run also changed the verdict protocol
 (see ADR 0001).

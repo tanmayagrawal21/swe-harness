@@ -60,6 +60,9 @@ def main(argv: list[str] | None = None) -> int:
         if a.executor != "scripted" and not a.confirm_live:
             print("live executors spend real tokens: pass --confirm-live", file=sys.stderr)
             return 2
+        if a.executor != "scripted" and a.out.resolve().is_relative_to(ROOT):
+            print("live builds must write outside the harness checkout (it holds the solutions)", file=sys.stderr)
+            return 2
         opts = {"max_budget_usd": a.max_budget_usd, "model_override": a.model} if a.executor == "claude" else {}
         r = build(a.project, a.out, a.workflow, a.executor, opts, 0.3 if a.executor == "scripted" else None,
                   a.keep_going)

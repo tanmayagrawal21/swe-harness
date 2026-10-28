@@ -259,11 +259,11 @@ step that breaks an earlier one shows up as a regression.
 
 ```bash
 uv run swe-harness build projects/wordtally --out runs/wordtally            # dry: commits known-good solutions
-uv run swe-harness build projects/wordtally --out runs/wordtally-live \
+uv run swe-harness build projects/wordtally --out ~/swe-harness-runs/wordtally \
     --executor claude --model sonnet --confirm-live                         # live: the model writes the code
 ```
 
-The build stops at the first step that isn't delivered (merged and accepted), unless you pass `--keep-going`.
+Live builds must write outside this checkout, so agents can't find the dry-run solutions. The build stops at the first step that isn't delivered (merged and accepted), unless you pass `--keep-going`.
 A project is a directory with `project.yaml` (`name`, `steps`), `seed/` and
 `tasks/<id>/{task.yaml, hidden_test.py, solution/}`. Steps are `kind: feature` with no pre-written PR. The
 `solution/` folder is only used by dry runs.

@@ -111,6 +111,7 @@ class LocalForge:
         git(self.repo, "checkout", "-q", "--detach")
         if not self._branch_exists("main"):  # the template's HEAD was detached (e.g. a previous episode's repo)
             git(self.repo, "branch", "main", "origin/main")
+        git(self.repo, "remote", "remove", "origin")  # agents must not reach the template (e.g. by pushing to it)
         self.wt_dir.mkdir(parents=True, exist_ok=True)
         return self.head("main")
 

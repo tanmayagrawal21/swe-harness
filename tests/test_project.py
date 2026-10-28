@@ -48,3 +48,26 @@ def test_project_steps_must_be_author_written_features(tmp_path):
     y.write_text(yaml.safe_dump({**yaml.safe_load(y.read_text()), "kind": "clean"}))
     with pytest.raises(ValueError):
         load_project(d)
+
+
+def test_a_leak_in_a_chained_step_is_counted_once(tmp_path):
+    d = _project(tmp_path)
+    terms = Path(__file__).resolve().parents[1] / "bench" / "private_profile" / "terms.txt"
+    term = next(t.strip() for t in terms.read_text().splitlines() if t.strip() and not t.startswith("#"))
+    (d / "tasks" / "02-top" / "solution" / "NOTES.md").write_text(f"contact: {term}\n")
+    wf = Path(__file__).resolve().parents[1] / "workflows" / "variants" / "no-privacy.yaml"
+    r = build(d, tmp_path / "out", workflow=wf)
+    leaked = [sum(e["leaks"].values()) > 0 for e in r["episodes"]]
+    assert leaked == [False, True, False, False]  # later steps start from a main that already holds it
+
+
+def test_chained_repos_have_no_remote(tmp_path):
+    r = build(WORDTALLY, tmp_path / "out")
+    assert git(Path(r["final_repo"]), "remote") == ""
+
+
+def test_live_build_refuses_an_out_dir_inside_the_checkout():
+    from swe_harness.cli import main
+
+    assert main(["build", str(WORDTALLY), "--executor", "claude", "--confirm-live", "--out",
+                 str(WORDTALLY.parents[1] / "runs" / "x")]) == 2

@@ -72,3 +72,10 @@ def test_aggregate():
     assert agg["clean_merged"] == "1/2"
     assert agg["merged_prs"] == 3
     assert agg["tokens_per_merged_pr"] == round(5000 / 3)
+
+
+def test_control_coverage_on_unsafe():
+    hit, miss = _s("unsafe", merged=False), _s("unsafe", merged=False)
+    hit.gates_dispatched = ["control", "reviewer"]
+    assert aggregate([hit, miss, _s("clean")])["control_on_unsafe"] == "1/2"
+    assert aggregate([_s("clean")])["control_on_unsafe"] == "n/a"

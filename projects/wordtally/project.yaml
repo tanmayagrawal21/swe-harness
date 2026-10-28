@@ -1,0 +1,2 @@
+name: wordtally
+steps: [01-count, 02-top, 03-cli, 04-stopwords]

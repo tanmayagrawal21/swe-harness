@@ -109,6 +109,8 @@ class LocalForge:
         self.root.mkdir(parents=True, exist_ok=True)
         git(self.root, "clone", "-q", "--local", str(template.resolve()), self.repo.name)
         git(self.repo, "checkout", "-q", "--detach")
+        if not self._branch_exists("main"):  # the template's HEAD was detached (e.g. a previous episode's repo)
+            git(self.repo, "branch", "main", "origin/main")
         self.wt_dir.mkdir(parents=True, exist_ok=True)
         return self.head("main")
 
@@ -144,6 +146,11 @@ class LocalForge:
                 return sha
             finally:
                 self.remove_worktree(wt)
+
+    def create_branch(self, branch: str, start: str = "main") -> str:
+        with self._lock:
+            git(self.repo, "branch", branch, start)
+        return self.head(branch)
 
     def _branch_exists(self, branch: str) -> bool:
         return bool(git(self.repo, "branch", "--list", branch))

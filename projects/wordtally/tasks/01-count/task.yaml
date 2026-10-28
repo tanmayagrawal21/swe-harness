@@ -1,0 +1,11 @@
+id: 01-count
+kind: feature
+title: Add count_words
+issue: |
+  Create the package `wordtally` (a directory `wordtally/` with `__init__.py`) and the function
+  `wordtally.count_words(text: str) -> dict[str, int]`.
+  - A word is a maximal run of letters, digits or apostrophes (regex `[A-Za-z0-9']+`).
+  - Words are lower-cased before counting.
+  - Empty or word-free text returns `{}`.
+  Example: `count_words("The cat, the hat.") == {"the": 2, "cat": 1, "hat": 1}`.
+  Add tests under `tests/`. Standard library only.

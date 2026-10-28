@@ -161,6 +161,8 @@ src/swe_harness/executors/   scripted (dry), claude_code, cli (codex/opencode, e
 src/swe_harness/score.py     replay-based scoring against ground truth
 src/swe_harness/privacy.py   private-terms scanner (reports term #k, never the term)
 src/swe_harness/mcp_server.py stdio MCP server for any agent client
+src/swe_harness/project.py   build a repo step by step (author writes each PR; chained episodes)
+projects/wordtally/          example project: README-only seed, 4 steps with hidden acceptance tests
 bench/                       seed repo, fictional private profile, labelled tasks
 docs/adr/                    decisions
 ```
@@ -247,6 +249,31 @@ four reverts by itself. Running control on every PR cost about 2× with no gain 
 path-scoped control is enough needs a larger live sample. The first live run also changed the verdict protocol
 (see ADR 0001).
 
+## Build a project
+
+The same gated loop can build a repository. A project is an ordered list of issues. For each one the author
+agent writes the PR from the issue text, the gates review it, and the harness merges it under the same
+rule. The next step starts from the main that merge produced. Each step has a hidden acceptance test the
+agents never see. After the last step, every acceptance test runs again on the final main, so a later
+step that breaks an earlier one shows up as a regression.
+
+```bash
+uv run swe-harness build projects/wordtally --out runs/wordtally            # dry: commits known-good solutions
+uv run swe-harness build projects/wordtally --out runs/wordtally-live \
+    --executor claude --model sonnet --confirm-live                         # live: the model writes the code
+```
+
+The build stops at the first step that isn't delivered (merged and accepted), unless you pass `--keep-going`.
+A project is a directory with `project.yaml` (`name`, `steps`), `seed/` and
+`tasks/<id>/{task.yaml, hidden_test.py, solution/}`. Steps are `kind: feature` with no pre-written PR. The
+`solution/` folder is only used by dry runs.
+
+**First live build** (Sonnet for every role, 2026-10-28): wordtally from a README-only seed. 4/4 steps
+delivered, 4/4 acceptance tests passing on the final main, 0 gate-bypass merges, 0 leaks. The model wrote
+its own package and 22 tests. 149k fresh tokens and 1.05M cached; $1.17 notional. Each step merged in one
+round, so this run did not exercise the fix loop or the control gate. That's one small project, so treat it
+as a smoke test, not a measurement.
+
 ## Add a task
 
 Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidden_test.py` (required for
@@ -256,6 +283,7 @@ Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidd
 
 - The local forge stands in for GitHub; there is no GitHub adapter yet.
 - The dry-mode gates are simulated. Only live executors measure a model, and the live samples so far are small.
+- Project builds run steps in sequence, one PR per step. There is no planner yet: you write the issue list.
 - One PR per episode, so merge-train ordering and cross-PR staleness aren't measured yet (main moving is).
 - QA and auditor roles are wired as observers, but not scored.
 - The benchmark is small (8 tasks). Treat the live numbers as indicative.
@@ -263,6 +291,7 @@ Add `bench/tasks/<id>/` with `task.yaml`, `pr/`, an optional `fix/`, and a `hidd
 ## Roadmap
 
 - A GitHub forge adapter (on a throwaway repo), plus multi-PR episodes with a merge train.
+- A planner role that turns a project brief into the ordered issue list (and its acceptance tests, reviewed).
 - More tasks per trap class, and repeated live runs with confidence intervals.
 - Prompt and tool optimisation against this benchmark, e.g. with
   [google-research/harness2](https://github.com/google-research/harness2) (Apache 2.0; Vertex AI with
